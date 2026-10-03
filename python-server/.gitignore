@@ -1,2 +1,4 @@
+node-server/.env
 .env
 __pycache__/
+*.pyc
