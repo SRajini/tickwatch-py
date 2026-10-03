@@ -1,0 +1,3 @@
+{
+  "functions": { "api/quotes.py": { "maxDuration": 15 } }
+}

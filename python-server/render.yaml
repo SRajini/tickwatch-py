@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: tickwatch
+    runtime: docker
+    healthCheckPath: /health
+    envVars:
+      - key: FINNHUB_API_KEY
+        sync: false   # paste your key in the Render dashboard
+      - key: SYMBOLS
+        value: AAPL,MSFT,NVDA,TSLA,AMZN,GOOGL,META,AMD

@@ -1,0 +1,8 @@
+{
+  "name": "tickwatch",
+  "version": "1.0.0",
+  "description": "Real-time stock monitoring dashboard with charts and trend alerts",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}
