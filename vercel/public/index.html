@@ -195,21 +195,27 @@ async function main(){
  let cfg;
  try{cfg=await getQuotes()}catch(e){$("src").textContent="Could not reach /api/quotes ("+e.message+"). Deploy to Vercel or run 'vercel dev'.";return}
  rules=loadRules();rules.forEach(r=>{r.id=r.id||++rid;rid=Math.max(rid,r.id)});
- if(cfg.mode==="simulated"){
+ const demo=location.search.includes("demo");
+ if(cfg.mode==="simulated"||demo){
   build(cfg.symbols,null,null,true);
   for(let i=0;i<340;i++){S.forEach(st=>step(st));tickN++}
   S.forEach(s=>{s.open=s.hist[0];s.hi=Math.max(...s.hist);s.lo=Math.min(...s.hist)});
-  $("src").textContent="Simulated feed: no API key is set on the server, so prices are generated in your browser. Not real quotes.";
+  $("src").textContent=demo?"Demo mode (?demo=1): simulated prices generated in your browser. Not real quotes.":"Simulated feed: no API key is set on the server, so prices are generated in your browser. Not real quotes.";
   live=true;
   setInterval(()=>{if(!paused){S.forEach(st=>step(st));tickN++;paint()}},1000);
  }else{
   build(cfg.symbols.filter(s=>cfg.prices[s]>0),cfg.opens,cfg.prices,false);
-  $("src").textContent="Live quotes from Finnhub, refreshed every "+(cfg.pollMs/1000)+"s. Each tick is one refresh; the chart fills in while this tab is open.";
-  live=true;let last=cfg.ts;
+  const base="Live quotes from Finnhub, refreshed every "+(cfg.pollMs/1000)+"s. Each tick is one refresh; the chart fills in while this tab is open.";
+  $("src").textContent=base;
+  live=true;let last=cfg.ts,still=0;
   setInterval(async()=>{
    if(paused)return;
    try{const q=await getQuotes();if(!q.prices||q.ts===last)return;last=q.ts;tickN++;
-    S.forEach(st=>{const px=q.prices[st.s];if(px>0)step(st,px)});paint()}catch(e){}
+    const changed=S.some(st=>q.prices[st.s]>0&&q.prices[st.s]!==st.p);
+    still=changed?0:still+1;
+    S.forEach(st=>{const px=q.prices[st.s];if(px>0)step(st,px)});
+    $("src").textContent=still>=2?"Prices have not changed for "+still+" refreshes. The US market is probably closed. Add ?demo=1 to the address for a simulated demo.":base;
+    paint()}catch(e){}
   },cfg.pollMs||10000);
  }
  sel=0;$("rs").innerHTML=S.map(s=>`<option>${s.s}</option>`).join("");syncPrice();
