@@ -29,6 +29,24 @@ def fetch_one(symbol, key):
         return symbol, 0, 0
 
 
+_status = {"t": 0.0, "open": None}
+
+
+def market_open(key):
+    """True/False from Finnhub's US market status, None if unknown. Cached for 60 s per warm instance."""
+    now = time.time()
+    if now - _status["t"] < 60:
+        return _status["open"]
+    try:
+        url = "https://finnhub.io/api/v1/stock/market-status?exchange=US&token=%s" % key
+        with urllib.request.urlopen(url, timeout=4) as resp:
+            _status["open"] = bool(json.load(resp).get("isOpen"))
+    except Exception:
+        _status["open"] = None
+    _status["t"] = now
+    return _status["open"]
+
+
 class handler(BaseHTTPRequestHandler):
     def _send(self, code, body, cache):
         data = json.dumps(body).encode()
@@ -53,5 +71,6 @@ class handler(BaseHTTPRequestHandler):
             return self._send(502, {"error": "no quotes returned"}, "no-store")
         # s-maxage lets Vercel's edge cache share one Finnhub fetch between all visitors
         self._send(200, {"mode": "live", "symbols": symbols, "prices": prices, "opens": opens,
-                         "ts": int(time.time()), "pollMs": 10000},
+                         "ts": int(time.time()), "pollMs": 10000,
+                         "marketOpen": market_open(key)},
                    "public, s-maxage=10, stale-while-revalidate=10")
