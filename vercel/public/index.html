@@ -54,6 +54,7 @@ form input{width:96px}
  <div><h1>Tickwatch</h1><div class="sub" id="src">Loading quotes…</div></div>
  <div class="ctl">
   <label><input type="checkbox" id="snd"> Sound</label>
+  <button id="md">Demo mode</button>
   <button id="pp">Pause</button>
   <button id="th">Theme</button>
  </div>
@@ -195,12 +196,14 @@ async function main(){
  let cfg;
  try{cfg=await getQuotes()}catch(e){$("src").textContent="Could not reach /api/quotes ("+e.message+"). Deploy to Vercel or run 'vercel dev'.";return}
  rules=loadRules();rules.forEach(r=>{r.id=r.id||++rid;rid=Math.max(rid,r.id)});
- const demo=location.search.includes("demo");
+ const qs=location.search,auto=cfg.mode==="live"&&cfg.marketOpen===false&&!qs.includes("live")&&!qs.includes("demo");
+ const demo=qs.includes("demo")||auto;window.__demo=demo;
+ $("md").textContent=demo?"Switch to live":"Switch to demo";
  if(cfg.mode==="simulated"||demo){
   build(cfg.symbols,null,null,true);
   for(let i=0;i<340;i++){S.forEach(st=>step(st));tickN++}
   S.forEach(s=>{s.open=s.hist[0];s.hi=Math.max(...s.hist);s.lo=Math.min(...s.hist)});
-  $("src").textContent=demo?"Demo mode (?demo=1): simulated prices generated in your browser. Not real quotes.":"Simulated feed: no API key is set on the server, so prices are generated in your browser. Not real quotes.";
+  $("src").textContent=auto?"The US market is closed, so this is a simulated demo with moving prices (not real quotes). Click Switch to live to see real closing prices.":demo?"Demo mode (?demo=1): simulated prices generated in your browser. Not real quotes.":"Simulated feed: no API key is set on the server, so prices are generated in your browser. Not real quotes.";
   live=true;
   setInterval(()=>{if(!paused){S.forEach(st=>step(st));tickN++;paint()}},1000);
  }else{
@@ -221,6 +224,7 @@ async function main(){
  sel=0;$("rs").innerHTML=S.map(s=>`<option>${s.s}</option>`).join("");syncPrice();
  renderRules();renderFeed();paint();
 }
+$("md").onclick=()=>{location.search=window.__demo?"?live=1":"?demo=1"};
 $("rs").onchange=syncPrice;
 $("fm").onsubmit=e=>{e.preventDefault();const v=parseFloat($("rp").value);if(!(v>0))return;rules.push({id:++rid,s:$("rs").value,d:$("rd").value,v});renderRules()};
 $("rules").onclick=e=>{const id=e.target.dataset.r;if(id){rules=rules.filter(r=>r.id!=id);renderRules()}};
